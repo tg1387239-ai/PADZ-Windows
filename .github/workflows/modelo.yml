@@ -23,13 +23,22 @@ jobs:
           curl -L --fail --retry 3 -o htdemucs6.onnx "https://huggingface.co/adowu/htdemucs-6s-onnx/resolve/main/htdemucs_6s_fp16weights.onnx"
           ls -la htdemucs6.onnx
           test $(stat -c%s htdemucs6.onnx) -gt 100000000
+      - name: Bajar el modelo de 6 pistas (guitarra y piano aparte)
+        run: |
+          curl -L --fail --retry 3 -o htdemucs6.onnx "https://huggingface.co/adowu/htdemucs-6s-onnx/resolve/main/htdemucs_6s_fp16weights.onnx"
+          curl -L --fail --retry 3 -o infer6.py "https://huggingface.co/adowu/htdemucs-6s-onnx/resolve/main/infer.py"
+          ls -la htdemucs6.onnx; test $(stat -c%s htdemucs6.onnx) -gt 50000000
       - name: Partir y guardar en la rama modelo
         run: |
-          mkdir -p out/modelo && split -b 24m -d -a 2 htdemucs.onnx out/modelo/htdemucs.part
-          SIZE=$(stat -c%s htdemucs.onnx); SHA=$(sha256sum htdemucs.onnx | cut -d' ' -f1)
-          PARTS=$(cd out/modelo && ls htdemucs.part* | python3 -c "import sys,json;print(json.dumps([l.strip() for l in sys.stdin]))")
-          echo "{\"file\":\"htdemucs_embedded.onnx\",\"source\":\"https://huggingface.co/timcsy/demucs-web-onnx\",\"license\":\"MIT\",\"size\":$SIZE,\"sha256\":\"$SHA\",\"parts\":$PARTS}" > out/modelo/info.json
-          cat out/modelo/info.json
+          mkdir -p out/modelo out/modelo6
+          parte () {  # parte ARCHIVO CARPETA FUENTE
+            split -b 24m -d -a 2 "$1" "$2/htdemucs.part"
+            SIZE=$(stat -c%s "$1"); SHA=$(sha256sum "$1" | cut -d' ' -f1)
+            PARTS=$(cd "$2" && ls htdemucs.part* | python3 -c "import sys,json;print(json.dumps([l.strip() for l in sys.stdin]))")
+            echo "{\"file\":\"$1\",\"source\":\"$3\",\"license\":\"MIT\",\"size\":$SIZE,\"sha256\":\"$SHA\",\"parts\":$PARTS}" > "$2/info.json"; cat "$2/info.json"; }
+          parte htdemucs.onnx out/modelo https://huggingface.co/timcsy/demucs-web-onnx
+          parte htdemucs6.onnx out/modelo6 https://huggingface.co/adowu/htdemucs-6s-onnx
+          cp infer6.py out/modelo6/infer.py
           mkdir -p out/modelo6 && split -b 24m -d -a 2 htdemucs6.onnx out/modelo6/htdemucs6.part
           SIZE6=$(stat -c%s htdemucs6.onnx); SHA6=$(sha256sum htdemucs6.onnx | cut -d' ' -f1)
           PARTS6=$(cd out/modelo6 && ls htdemucs6.part* | python3 -c "import sys,json;print(json.dumps([l.strip() for l in sys.stdin]))")
