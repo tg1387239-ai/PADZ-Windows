@@ -1,0 +1,55 @@
+name: Armar PADZ para Windows
+
+# Se fija cada 3 horas si hay una versión nueva de PADZ en la web; si la hay, arma el instalador y lo publica.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: armar
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Bajar la última versión de PADZ
+        id: padz
+        shell: bash
+        run: node scripts/preparar.mjs
+      - name: ¿Ya está publicada?
+        id: ya
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.padz.outputs.version }}" >/dev/null 2>&1; then echo "si=1" >> "$GITHUB_OUTPUT"; echo "La versión ya estaba publicada."; fi
+      - name: Armar el instalador
+        if: steps.ya.outputs.si != '1'
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx --yes electron-builder@24.13.3 --win --x64 --projectDir app --publish never
+      - name: Publicar
+        if: steps.ya.outputs.si != '1'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.padz.outputs.version }}"
+          ls -la app/dist
+          gh release create "v$V" app/dist/PADZ-Setup.exe --title "PADZ $V" --latest --notes "PADZ $V para Windows (64 bits).
+
+          **Instalar:** bajá **PADZ-Setup.exe** y abrilo. Se instala solo y queda el acceso directo en el escritorio.
+          Si Windows muestra *\"Windows protegió tu PC\"*: tocá **Más información → Ejecutar de todas formas** (pasa porque la app todavía no tiene firma paga).
+          **Actualizar:** instalá la nueva encima. Tus canciones, set lists y ajustes se mantienen."
