@@ -16,6 +16,7 @@ fs.writeFileSync(path.join(out, "electron-builder.json"), JSON.stringify({
   directories: { output: "dist" },
   files: ["**/*", "!electron-builder.json"],
   electronLanguages: ["es", "es-419", "en-US", "pt-BR"],
+  protocols: [{ name: "PADZ", schemes: ["padz"] }],
   win: { target: [{ target: "nsis", arch: ["x64"] }], icon: "icon.ico", artifactName: "PADZ-Setup.${ext}" },
   nsis: { oneClick: true, perMachine: false, runAfterFinish: true, createDesktopShortcut: "always", createStartMenuShortcut: true, shortcutName: "PADZ", deleteAppDataOnUninstall: false, installerIcon: "icon.ico", uninstallerIcon: "icon.ico", artifactName: "PADZ-Setup.${ext}" },
   publish: null
