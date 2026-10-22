@@ -1,0 +1,32 @@
+name: Copiar el motor de IA de Secuencias
+
+# Baja el modelo HT-Demucs (licencia MIT) de Hugging Face y lo guarda en la rama "modelo" partido en pedazos de 24 MB,
+# para que PADZ lo sirva desde su propio sitio (más rápido y sin depender de otros servidores).
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/modelo.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  modelo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar el modelo
+        run: |
+          curl -L --fail --retry 3 -o htdemucs.onnx "https://huggingface.co/timcsy/demucs-web-onnx/resolve/main/htdemucs_embedded.onnx"
+          ls -la htdemucs.onnx
+          test $(stat -c%s htdemucs.onnx) -gt 100000000
+      - name: Partir y guardar en la rama modelo
+        run: |
+          mkdir -p out/modelo && split -b 24m -d -a 2 htdemucs.onnx out/modelo/htdemucs.part
+          SIZE=$(stat -c%s htdemucs.onnx); SHA=$(sha256sum htdemucs.onnx | cut -d' ' -f1)
+          PARTS=$(cd out/modelo && ls htdemucs.part* | python3 -c "import sys,json;print(json.dumps([l.strip() for l in sys.stdin]))")
+          echo "{\"file\":\"htdemucs_embedded.onnx\",\"source\":\"https://huggingface.co/timcsy/demucs-web-onnx\",\"license\":\"MIT\",\"size\":$SIZE,\"sha256\":\"$SHA\",\"parts\":$PARTS}" > out/modelo/info.json
+          cat out/modelo/info.json
+          cd out && git init -q -b modelo && git add -A
+          git -c user.name="PADZ" -c user.email="actions@users.noreply.github.com" commit -q -m "Motor de IA de Secuencias (HT-Demucs, MIT)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" modelo
