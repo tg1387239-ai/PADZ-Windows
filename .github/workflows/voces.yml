@@ -1,0 +1,33 @@
+name: Armar las voces de la voz guía
+
+# Genera una sola vez las palabras de la voz guía de Secuencias ("Coro", "uno", "subimos"…) con Piper
+# (texto a voz libre que corre en la compu, sin servicios pagos) y las guarda en la rama "voces".
+# PADZ las incluye adentro de la app: no hace falta internet ni cuesta nada usarlas.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/voces.yml", "scripts/voces.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  voces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar Piper y ffmpeg
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          pip install -q piper-tts==1.2.0
+      - name: Generar las palabras
+        run: python scripts/voces.py
+      - name: Guardar en la rama voces
+        run: |
+          cd out && git init -q -b voces && git add -A
+          git -c user.name="PADZ" -c user.email="actions@users.noreply.github.com" commit -q -m "Voces de la voz guía (Piper)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" voces
