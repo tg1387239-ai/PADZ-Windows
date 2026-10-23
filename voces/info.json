@@ -1,0 +1,82 @@
+{
+ "words": {
+  "intro": "intro",
+  "verso": "verso",
+  "pre coro": "pre-coro",
+  "coro": "coro",
+  "puente": "puente",
+  "interludio": "interludio",
+  "instrumental": "instrumental",
+  "final": "final",
+  "repetimos": "repetimos",
+  "una vez más": "una-vez-mas",
+  "todos": "todos",
+  "bajamos": "bajamos",
+  "subimos": "subimos",
+  "uno": "uno",
+  "dos": "dos",
+  "tres": "tres",
+  "cuatro": "cuatro",
+  "cinco": "cinco",
+  "seis": "seis",
+  "parte": "parte",
+  "canción": "cancion",
+  "solo": "solo",
+  "outro": "outro",
+  "vamp": "vamp",
+  "break": "break",
+  "sin batería": "sin-bateria",
+  "entra la batería": "entra-la-bateria",
+  "último coro": "ultimo-coro"
+ },
+ "voices": [
+  {
+   "id": "daniela",
+   "name": "Daniela",
+   "gender": "mujer",
+   "accent": "Argentina",
+   "words": 28,
+   "model": "es/es_AR/daniela/high/es_AR-daniela-high"
+  },
+  {
+   "id": "claude",
+   "name": "Clara",
+   "gender": "mujer",
+   "accent": "México",
+   "words": 28,
+   "model": "es/es_MX/claude/high/es_MX-claude-high"
+  },
+  {
+   "id": "sharvard-f",
+   "name": "Sara",
+   "gender": "mujer",
+   "accent": "España",
+   "words": 28,
+   "model": "es/es_ES/sharvard/medium/es_ES-sharvard-medium"
+  },
+  {
+   "id": "davefx",
+   "name": "David",
+   "gender": "hombre",
+   "accent": "España",
+   "words": 28,
+   "model": "es/es_ES/davefx/medium/es_ES-davefx-medium"
+  },
+  {
+   "id": "sharvard-m",
+   "name": "Samuel",
+   "gender": "hombre",
+   "accent": "España",
+   "words": 28,
+   "model": "es/es_ES/sharvard/medium/es_ES-sharvard-medium"
+  },
+  {
+   "id": "carlfm",
+   "name": "Carlos",
+   "gender": "hombre",
+   "accent": "España",
+   "words": 28,
+   "model": "es/es_ES/carlfm/x_low/es_ES-carlfm-x_low"
+  }
+ ]
+}
