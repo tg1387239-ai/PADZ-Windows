@@ -7,7 +7,6 @@ VOCES = [
     ("daniela", "es/es_AR/daniela/high/es_AR-daniela-high", "Daniela", "mujer", "Argentina", None),
     ("claude", "es/es_MX/claude/high/es_MX-claude-high", "Clara", "mujer", "México", None),
     ("sharvard-f", "es/es_ES/sharvard/medium/es_ES-sharvard-medium", "Sara", "mujer", "España", 1),
-    ("ald", "es/es_MX/ald/medium/es_MX-ald-medium", "Aldo", "hombre", "México", None),
     ("davefx", "es/es_ES/davefx/medium/es_ES-davefx-medium", "David", "hombre", "España", None),
     ("sharvard-m", "es/es_ES/sharvard/medium/es_ES-sharvard-medium", "Samuel", "hombre", "España", 0),
     ("carlfm", "es/es_ES/carlfm/x_low/es_ES-carlfm-x_low", "Carlos", "hombre", "España", None),
