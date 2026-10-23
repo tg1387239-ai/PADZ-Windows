@@ -1,0 +1,27 @@
+name: Bajar fotos para los diseños
+
+# Fotos libres de Unsplash (Licencia Unsplash: uso gratis, también comercial, sin pedir permiso) para las propuestas de diseño de PADZ.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/fotos.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fotos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar
+        run: |
+          mkdir -p out/fotos && cd out/fotos
+          for id in 29QO6oX3GlA 4qnhBQv4qcg ImYmMnPffDI 4o2vwgYTMkM PbQF8EIsR2U sfjeJAUoFZM 3u9mAxdRAfA saA-8XBLdjM kPeREWY4dVQ QSdmn5-UI1c 8__esxuic9Q B0_lm4_aaDo; do
+            curl -sSL --fail --retry 3 -o "$id.jpg" "https://unsplash.com/photos/$id/download?force=true&w=1600" || echo "falló $id"
+          done
+          ls -la
+          echo "Fotos de Unsplash (https://unsplash.com/license). Cada archivo se llama como su página: https://unsplash.com/photos/<nombre>" > LEEME.txt
+          cd .. && git init -q -b fotos && git add -A
+          git -c user.name="PADZ" -c user.email="actions@users.noreply.github.com" commit -q -m "Fotos para los diseños (Unsplash)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" fotos
