@@ -14,10 +14,10 @@ VOCES = [
 PALABRAS = ["intro", "verso", "pre coro", "coro", "puente", "interludio", "instrumental", "final", "repetimos", "una vez más",
             "todos", "bajamos", "subimos", "uno", "dos", "tres", "cuatro", "cinco", "seis", "parte", "canción", "solo",
             "outro", "vamp", "break", "sin batería", "entra la batería", "último coro"]
-# cómo se dice cada palabra (con signos, suena con más energía)
-DECIR = {"uno": "¡Uno!", "dos": "¡Dos!", "tres": "¡Tres!", "cuatro": "¡Cuatro!", "cinco": "¡Cinco!", "seis": "¡Seis!",
+# cómo se dice cada palabra: los números cortos y secos (como cuenta un baterista), sin signos que alarguen
+DECIR = {"uno": "Uno.", "dos": "Dos.", "tres": "Tres.", "cuatro": "Cuatro.", "cinco": "Cinco.", "seis": "Seis.",
          "pre coro": "Precoro.", "vamp": "Vamp.", "break": "Break."}
-
+CUENTA = {"uno", "dos", "tres", "cuatro", "cinco", "seis"}
 def slug(w):
     w = unicodedata.normalize("NFD", w); w = "".join(c for c in w if unicodedata.category(c) != "Mn")
     return w.lower().replace(" ", "-")
@@ -38,7 +38,8 @@ for vid, ruta, nombre, genero, acento, spk in VOCES:
     ok = 0
     for w in PALABRAS:
         txt = DECIR.get(w, w[0].upper() + w[1:] + ".")
-        wav = "/tmp/w.wav"; cmd = ["piper", "--model", base + ".onnx", "--output_file", wav, "--sentence_silence", "0"]
+        wav = "/tmp/w.wav"; cmd = ["piper", "--model", base + ".onnx", "--output_file", wav, "--sentence_silence", "0",
+               "--length_scale", "0.72" if w in CUENTA else "0.88", "--noise_scale", "0.5", "--noise_w", "0.6"]
         if spk is not None: cmd += ["--speaker", str(spk)]
         r = subprocess.run(cmd, input=txt.encode("utf-8"), capture_output=True)
         if r.returncode or not os.path.exists(wav): print("falló", vid, w, r.stderr[-300:]); continue
