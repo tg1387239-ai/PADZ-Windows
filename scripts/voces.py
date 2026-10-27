@@ -18,12 +18,15 @@ PALABRAS = ["intro", "verso", "pre coro", "coro", "puente", "interludio", "instr
 DECIR = {"uno": "Uno.", "dos": "Dos.", "tres": "Tres.", "cuatro": "Cuatro.", "cinco": "Cinco.", "seis": "Seis.",
          "pre coro": "Precoro.", "vamp": "Vamp.", "break": "Break."}
 CUENTA = {"uno", "dos", "tres", "cuatro", "cinco", "seis"}
+# con energía, como un líder de alabanza ("¡Coro!", "¡tres, cuatro!"): se guardan como "coro!" → coro-x.mp3
+ENERGIA = ["intro", "verso", "pre coro", "coro", "puente", "interludio", "instrumental", "final", "último coro", "una vez más",
+           "todos", "subimos", "bajamos", "uno", "dos", "tres", "cuatro", "sin batería", "entra la batería", "outro", "vamp", "break", "solo"]
 def slug(w):
     w = unicodedata.normalize("NFD", w); w = "".join(c for c in w if unicodedata.category(c) != "Mn")
     return w.lower().replace(" ", "-")
 
 os.makedirs("voices", exist_ok=True)
-info = {"words": {w: slug(w) for w in PALABRAS}, "voices": []}
+info = {"words": {**{w: slug(w) for w in PALABRAS}, **{w + "!": slug(w) + "-x" for w in ENERGIA}}, "voices": []}
 for vid, ruta, nombre, genero, acento, spk in VOCES:
     base = os.path.join("voices", os.path.basename(ruta))
     try:
@@ -47,6 +50,19 @@ for vid, ruta, nombre, genero, acento, spk in VOCES:
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af",
                         "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-16:TP=-1.5",
                         "-ac", "1", "-ar", "24000", "-b:a", "64k", os.path.join(out, slug(w) + ".mp3")], check=True)
+        os.remove(wav); ok += 1
+    for w in ENERGIA:
+        base_t = DECIR.get(w, w[0].upper() + w[1:] + ".").rstrip(".")
+        txt = "¡" + base_t + "!"
+        wav = "/tmp/w.wav"; cmd = ["piper", "--model", base + ".onnx", "--output_file", wav, "--sentence_silence", "0",
+               "--length_scale", "0.68" if w in CUENTA else "0.8", "--noise_scale", "0.8", "--noise_w", "0.8"]
+        if spk is not None: cmd += ["--speaker", str(spk)]
+        r = subprocess.run(cmd, input=txt.encode("utf-8"), capture_output=True)
+        if r.returncode or not os.path.exists(wav): print("falló", vid, w, "!", r.stderr[-300:]); continue
+        # un poco más fuerte y brillante que la versión tranquila
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af",
+                        "silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,treble=g=3:f=3000,loudnorm=I=-14:TP=-1.0",
+                        "-ac", "1", "-ar", "24000", "-b:a", "64k", os.path.join(out, slug(w) + "-x.mp3")], check=True)
         os.remove(wav); ok += 1
     info["voices"].append({"id": vid, "name": nombre, "gender": genero, "accent": acento, "words": ok, "model": ruta})
     print(vid, ok, "palabras")
