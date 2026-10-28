@@ -90,14 +90,16 @@ jobs:
         env:
           PADZ_VERSION: ${{ steps.ya.outputs.v }}
         run: |
-          npm install --no-audit --no-fund
-          curl -fsSL "https://padz.tg1387239.workers.dev/icon-512.png" -o icon.png
-          npx cap add android
-          node scripts/preparar-android.mjs
-          npx cap sync android
-          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk ../PADZ.apk
-          ls -la ../PADZ.apk
+          mkdir -p capturas
+          set -o pipefail
+          ( set -e
+            npm install --no-audit --no-fund
+            npx cap add android
+            node scripts/preparar-android.mjs
+            npx cap sync android
+            cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk ../PADZ.apk
+            ls -la ../PADZ.apk ) 2>&1 | tee capturas/armado.log
       - name: Habilitar KVM (emulador)
         if: steps.ya.outputs.si != '1'
         run: |
@@ -117,7 +119,7 @@ jobs:
           working-directory: android
           script: |
             adb install -r PADZ.apk
-            npm install --no-save --no-audit --no-fund playwright@1.48.2 && node scripts/prueba.mjs
+            npm install --no-save --no-audit --no-fund playwright@1.48.2 && node scripts/prueba.mjs 2>&1 | tee capturas/prueba.log
       - name: Guardar capturas y resultado
         if: always() && steps.ya.outputs.si != '1'
         uses: actions/upload-artifact@v4
