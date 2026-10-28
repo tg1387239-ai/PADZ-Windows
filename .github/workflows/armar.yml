@@ -111,16 +111,16 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          target: aosp_atd
           arch: x86_64
           ram-size: 3072M
-          emulator-options: -no-window -gpu guest -no-snapshot -no-boot-anim -noaudio
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -noaudio
           disable-animations: true
           working-directory: android
           script: |
             adb install -r PADZ.apk
             npm install --no-save --no-audit --no-fund playwright@1.48.2
-            mkdir -p capturas; (adb logcat -v time > capturas/logcat-vivo.txt 2>&1 &); (while true; do date +%T >> capturas/latidos.txt; adb shell 'cat /proc/meminfo | head -3' >> capturas/latidos.txt 2>&1 || echo sin-equipo >> capturas/latidos.txt; sleep 5; done &); timeout 600 node scripts/prueba.mjs > capturas/prueba.log 2>&1; r=$?; cat capturas/prueba.log; timeout 30 adb logcat -d -v time > capturas/logcat.txt 2>&1; timeout 20 adb exec-out screencap -p > capturas/final.png; exit $r
+            mkdir -p capturas; (timeout 700 adb logcat -v time > capturas/logcat-vivo.txt 2>&1 &); timeout 600 node scripts/prueba.mjs > capturas/prueba.log 2>&1; r=$?; cat capturas/prueba.log; timeout 30 adb logcat -d -v time > capturas/logcat.txt 2>&1; timeout 20 adb exec-out screencap -p > capturas/final.png; exit $r
       - name: Guardar capturas y resultado
         if: always() && steps.ya.outputs.si != '1'
         uses: actions/upload-artifact@v4
