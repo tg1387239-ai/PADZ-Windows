@@ -32,25 +32,25 @@ const r = await p.evaluate(async () => {
 });
 ok(r.tracks === 4, "secuencia guardada (" + r.codec + ") y abierta en la mezcladora con " + r.tracks + " pistas");
 await p.evaluate(() => document.querySelectorAll(".tour").forEach((t) => t.remove()));
-await p.evaluate(() => document.querySelector('#sqPanel [data-q="play"]').scrollIntoView({ block: "center" })); await p.waitForTimeout(400);
-await p.tap('#sqPanel [data-q="play"]', { timeout: 10000 }).catch(() => p.evaluate(() => document.querySelector('#sqPanel [data-q="play"]').click())); await p.waitForTimeout(3500);
-const s2 = await p.evaluate(() => ({ playing: sqUi.player.playing, pos: sqUi.player.position, m: sqUi.player.meter("master").peak }));
-ok(s2.playing && s2.pos > 1, "suena en el teléfono: posición " + s2.pos.toFixed(1) + " s, pico de salida " + s2.m.toFixed(2));
-// fader de Voces con el dedo
-await p.evaluate(() => document.querySelector('#sqPanel .strip[data-k="vocals"] .fdr-track').scrollIntoView({ block: "center" })); await p.waitForTimeout(500); shot("2-mezcladora");
+const save = () => fs.writeFileSync("capturas/resultado.txt", out.join("\n") + "\n");
+save();
+// 1) el fader de Voces con el dedo (no hace falta que suene: cambia la ganancia del canal)
+await p.evaluate(() => document.querySelector('#sqPanel .strip[data-k="vocals"] .fdr-track').scrollIntoView({ block: "center" })); await p.waitForTimeout(600); shot("2-mezcladora");
 const bb = await (await p.$('#sqPanel .strip[data-k="vocals"] .fdr-cap')).boundingBox();
-const dpr = await p.evaluate(() => devicePixelRatio), bar = 0;   // la página ocupa la pantalla debajo de la barra del sistema
-const x = Math.round((bb.x + bb.width / 2) * dpr), y = Math.round((bb.y + bb.height / 2) * dpr), top = parseInt(sh("adb shell dumpsys window | grep -m1 mStableInsets || true").match(/\[\d+,(\d+)\]/)?.[1] || "0", 10);
-sh(`adb shell input swipe ${x} ${y + top} ${x} ${y + top + Math.round(60 * dpr)} 600`); await p.waitForTimeout(600);
-let v = await p.evaluate(() => sqUi.player.state.vol.vocals), how = "pantalla táctil del emulador (adb)";
-if (!(v < 0.9)) { // si la cuenta de la barra del sistema no coincide, se manda el toque directo al WebView
-  const cdp = await p.context().newCDPSession(p); const cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: cx, y: cy }] });
-  for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: cx, y: cy + 6 * i }] });
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(400);
-  v = await p.evaluate(() => sqUi.player.state.vol.vocals); how = "toque enviado al WebView"; }
-ok(v < 0.9, "fader de Voces movido con el dedo (" + how + "): ganancia " + v.toFixed(3));
-shot("3-fader"); await p.evaluate(() => { sqUi.player.pause(); showTab("consola"); }); await p.waitForTimeout(1500); shot("4-consola");
+const cdp = await p.context().newCDPSession(p); const cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2;
+await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: cx, y: cy }] });
+for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: cx, y: cy + 6 * i }] });
+await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(400);
+const v = await p.evaluate(() => ({ v: sqUi.player.state.vol.vocals, g: sqUi.player.state.gains.vocals.gain.value, t: document.querySelector('#sqPanel .strip[data-k="vocals"] .fdr-val').textContent }));
+ok(v.v < 0.9 && Math.abs(v.g - v.v) < 0.02, "fader de Voces arrastrado con el dedo en el WebView de Android: " + v.t + " dB (ganancia " + v.v.toFixed(3) + ")"); shot("3-fader"); save();
+// 2) audio del WebView (sólo un oscilador) y 3) la secuencia sonando
+const a = await p.evaluate(async () => { const c = new AudioContext(); await c.resume().catch(() => {}); const o = c.createOscillator(); const g = c.createGain(); g.gain.value = 0.01; o.connect(g).connect(c.destination); o.start(); const t0 = c.currentTime; await new Promise((r) => setTimeout(r, 1500)); const t1 = c.currentTime; o.stop(); c.close(); return { st: c.state, t0, t1, sr: c.sampleRate }; });
+out.push("audio del WebView: " + JSON.stringify(a)); save();
+ok(a.t1 > a.t0 + 0.5, "el reloj de audio corre en el WebView (" + (a.t1 - a.t0).toFixed(2) + " s en 1,5 s)");
+await p.evaluate(() => { const pl = sqUi.player; return pl.play(0); }); await p.waitForTimeout(3000);
+const s2 = await p.evaluate(() => ({ playing: sqUi.player.playing, pos: sqUi.player.position, m: sqUi.player.meter("master").peak }));
+ok(s2.playing && s2.pos > 1, "la secuencia suena en el WebView: posición " + s2.pos.toFixed(1) + " s, pico de salida " + s2.m.toFixed(2)); save();
+ await p.evaluate(() => { sqUi.player.pause(); showTab("consola"); }); await p.waitForTimeout(1500); shot("4-consola");
 const mem = sh("adb shell dumpsys meminfo app.padz.android | grep -m1 'TOTAL PSS' || adb shell dumpsys meminfo app.padz.android | grep -m1 TOTAL"); out.push("memoria: " + mem.trim());
 fs.writeFileSync("capturas/resultado.txt", out.join("\n") + "\n" + (fallas ? fallas + " fallas" : "Todo bien") + "\n");
 console.log(fallas ? fallas + " fallas" : "Todo bien"); await dev.close(); process.exit(fallas ? 1 : 0);

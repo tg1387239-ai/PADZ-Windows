@@ -120,7 +120,7 @@ jobs:
           script: |
             adb install -r PADZ.apk
             npm install --no-save --no-audit --no-fund playwright@1.48.2
-            mkdir -p capturas; node scripts/prueba.mjs > capturas/prueba.log 2>&1; r=$?; cat capturas/prueba.log; adb logcat -d -v time > capturas/logcat.txt 2>&1; adb exec-out screencap -p > capturas/final.png; exit $r
+            mkdir -p capturas; timeout 600 node scripts/prueba.mjs > capturas/prueba.log 2>&1; r=$?; cat capturas/prueba.log; timeout 30 adb logcat -d -v time > capturas/logcat.txt 2>&1; timeout 20 adb exec-out screencap -p > capturas/final.png; exit $r
       - name: Guardar capturas y resultado
         if: always() && steps.ya.outputs.si != '1'
         uses: actions/upload-artifact@v4
