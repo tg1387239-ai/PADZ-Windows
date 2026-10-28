@@ -26,7 +26,7 @@ const RES = path.join(root, "app/src/main/res"), src = path.resolve("icon.png");
 fs.rmSync(path.join(RES, "mipmap-anydpi-v26"), { recursive: true, force: true });
 for (const [d, s] of [["mdpi", 48], ["hdpi", 72], ["xhdpi", 96], ["xxhdpi", 144], ["xxxhdpi", 192]]) {
   const dir = path.join(RES, "mipmap-" + d); fs.mkdirSync(dir, { recursive: true });
-  for (const n of ["ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png"]) execSync(`convert "${src}" -resize ${s}x${s} "${path.join(dir, n)}"`);
+  for (const n of ["ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png"]) fs.copyFileSync(path.resolve("iconos", s + ".png"), path.join(dir, n));   // ya achicados (iconos/)
 }
 // color de la barra de arriba
 const st = path.join(RES, "values/styles.xml"); if (fs.existsSync(st)) { let x = fs.readFileSync(st, "utf8"); if (!x.includes("statusBarColor")) x = x.replace(/(<style name="AppTheme.NoActionBar"[^>]*>)/, '$1\n        <item name="android:statusBarColor">#0B0D10</item>\n        <item name="android:navigationBarColor">#0B0D10</item>'); fs.writeFileSync(st, x); }
