@@ -1,0 +1,16 @@
+{
+  "appId": "app.padz.android",
+  "appName": "PADZ",
+  "webDir": "www",
+  "server": {
+    "url": "https://padz.tg1387239.workers.dev/",
+    "androidScheme": "https",
+    "allowNavigation": ["padz.tg1387239.workers.dev"],
+    "errorPath": "sin-conexion.html"
+  },
+  "android": {
+    "backgroundColor": "#0B0D10",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": true
+  }
+}

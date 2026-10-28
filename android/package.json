@@ -1,0 +1,13 @@
+{
+  "name": "padz-android",
+  "private": true,
+  "version": "0.0.0",
+  "description": "PADZ para Android: abre PADZ web adentro de una app (Capacitor), con micrófono, ingreso por el navegador y padz://",
+  "dependencies": {
+    "@capacitor/android": "6.2.0",
+    "@capacitor/app": "6.0.2",
+    "@capacitor/browser": "6.0.4",
+    "@capacitor/cli": "6.2.0",
+    "@capacitor/core": "6.2.0"
+  }
+}

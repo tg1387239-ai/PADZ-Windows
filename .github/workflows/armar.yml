@@ -18,6 +18,8 @@ concurrency:
 jobs:
   windows:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.padz.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,3 +55,87 @@ jobs:
           **Instalar:** bajá **PADZ-Setup.exe** y abrilo. Se instala solo y queda el acceso directo en el escritorio.
           Si Windows muestra *\"Windows protegió tu PC\"*: tocá **Más información → Ejecutar de todas formas** (pasa porque la app todavía no tiene firma paga).
           **Actualizar:** instalá la nueva encima. Tus canciones, set lists y ajustes se mantienen."
+
+  # ---- Android: APK (Capacitor) que abre PADZ web adentro, probado en un emulador antes de publicarlo ----
+  android:
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: ¿Ya está el APK de esta versión?
+        id: ya
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ needs.windows.outputs.version }}"; echo "v=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" --json assets -q '.assets[].name' 2>/dev/null | grep -qx PADZ.apk; then echo "si=1" >> "$GITHUB_OUTPUT"; echo "El APK ya estaba publicado."; fi
+      # la misma firma de prueba en cada versión (para poder instalar encima sin desinstalar); no se guarda en el repositorio
+      - name: Firma (guardada en la caché de GitHub)
+        if: steps.ya.outputs.si != '1'
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: padz-android-firma-v1
+      - name: Armar el APK
+        if: steps.ya.outputs.si != '1'
+        working-directory: android
+        env:
+          PADZ_VERSION: ${{ steps.ya.outputs.v }}
+        run: |
+          npm install --no-audit --no-fund
+          curl -fsSL "https://padz.tg1387239.workers.dev/icon-512.png" -o icon.png
+          npx cap add android
+          node scripts/preparar-android.mjs
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../PADZ.apk
+          ls -la ../PADZ.apk
+      - name: Habilitar KVM (emulador)
+        if: steps.ya.outputs.si != '1'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Probar en un emulador de Android
+        if: steps.ya.outputs.si != '1'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          ram-size: 3072M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+          disable-animations: true
+          working-directory: android
+          script: |
+            adb install -r PADZ.apk
+            npm install --no-save --no-audit --no-fund playwright@1.48.2 && node scripts/prueba.mjs
+      - name: Guardar capturas y resultado
+        if: always() && steps.ya.outputs.si != '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-prueba
+          path: android/capturas
+      - name: Capturas a la rama android-prueba (para revisarlas)
+        if: always() && steps.ya.outputs.si != '1'
+        run: |
+          [ -d android/capturas ] || exit 0
+          git init -q o && cp -r android/capturas/. o/ && cd o && git checkout -q -b android-prueba && git add -A && git -c user.name=padz -c user.email=padz@padz -c commit.gpgsign=false commit -qm "prueba android ${{ steps.ya.outputs.v }}" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-prueba
+      - name: Publicar el APK
+        if: steps.ya.outputs.si != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.ya.outputs.v }}"
+          gh release upload "v$V" android/PADZ.apk --clobber
+          gh release view "v$V" --json body -q .body > notas.md
+          printf '\n\n**Android:** bajá **PADZ.apk** en el teléfono y abrilo. Si pide permiso para "instalar apps desconocidas", aceptalo para el navegador o Archivos. Es una versión de prueba (firma de prueba, no está en Play Store).\n' >> notas.md
+          gh release edit "v$V" --notes-file notas.md
