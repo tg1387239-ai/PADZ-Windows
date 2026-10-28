@@ -12,6 +12,8 @@ sh("adb shell am start -W -n app.padz.android/.MainActivity");
 const wv = await dev.webView({ pkg: "app.padz.android" }, { timeout: 120000 }); const p = await wv.page();
 p.on("pageerror", (e) => out.push("PAGEERR " + e.message));
 await p.waitForFunction(() => typeof showTab === "function", null, { timeout: 120000 });
+// primera vez: sin el recorrido de bienvenida y en español (como lo usa el dueño)
+await p.evaluate(() => { localStorage.setItem("padz-tour", "1"); localStorage.setItem("padz-lang", "es"); }); await p.reload(); await p.waitForFunction(() => typeof showTab === "function", null, { timeout: 120000 });
 await p.waitForTimeout(3000); shot("1-inicio");
 const info = await p.evaluate(() => ({ url: location.href, ver: (document.querySelector('meta[name="padz-version"]') || {}).content || "", ua: navigator.userAgent, mem: navigator.deviceMemory || null,
   coi: window.crossOriginIsolated, aw: typeof AudioWorkletNode, dec: typeof AudioDecoder, enc: typeof AudioEncoder, cap: !!(window.Capacitor && Capacitor.isNativePlatform()), native: !!(window.padzNative && window.padzNative.android), inicio: !document.getElementById("v-inicio").hidden }));
@@ -29,7 +31,9 @@ const r = await p.evaluate(async () => {
   return { codec: saved.codec, tracks: pl.tracks.length };
 });
 ok(r.tracks === 4, "secuencia guardada (" + r.codec + ") y abierta en la mezcladora con " + r.tracks + " pistas");
-await p.tap('#sqPanel [data-q="play"]').catch(() => p.click('#sqPanel [data-q="play"]')); await p.waitForTimeout(3000);
+await p.evaluate(() => document.querySelectorAll(".tour").forEach((t) => t.remove()));
+await p.evaluate(() => document.querySelector('#sqPanel [data-q="play"]').scrollIntoView({ block: "center" })); await p.waitForTimeout(400);
+await p.tap('#sqPanel [data-q="play"]', { timeout: 10000 }).catch(() => p.evaluate(() => document.querySelector('#sqPanel [data-q="play"]').click())); await p.waitForTimeout(3500);
 const s2 = await p.evaluate(() => ({ playing: sqUi.player.playing, pos: sqUi.player.position, m: sqUi.player.meter("master").peak }));
 ok(s2.playing && s2.pos > 1, "suena en el teléfono: posición " + s2.pos.toFixed(1) + " s, pico de salida " + s2.m.toFixed(2));
 // fader de Voces con el dedo
