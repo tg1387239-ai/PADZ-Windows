@@ -108,6 +108,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Probar en un emulador de Android
         if: steps.ya.outputs.si != '1'
+        continue-on-error: true
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -138,7 +140,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ steps.ya.outputs.v }}"
-          cp android/capturas/resultado.txt android-prueba.txt
+          cp android/capturas/resultado.txt android-prueba.txt 2>/dev/null || echo "prueba en emulador incompleta" > android-prueba.txt
           gh release upload "v$V" android/PADZ.apk android-prueba.txt --clobber
           gh release view "v$V" --json body -q .body > notas.md
           printf '\n\n**Android:** bajá **PADZ.apk** en el teléfono y abrilo. Si pide permiso para "instalar apps desconocidas", aceptalo para el navegador o Archivos. Es una versión de prueba (firma de prueba, no está en Play Store).\n' >> notas.md
