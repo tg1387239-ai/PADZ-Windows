@@ -51,6 +51,31 @@ await p.evaluate(() => { const pl = sqUi.player; return pl.play(0); }); await p.
 const s2 = await p.evaluate(() => ({ playing: sqUi.player.playing, pos: sqUi.player.position, m: sqUi.player.meter("master").peak }));
 ok(s2.playing && s2.pos > 1, "la secuencia suena en el WebView: posición " + s2.pos.toFixed(1) + " s, pico de salida " + s2.m.toFixed(2)); save();
  await p.evaluate(() => { sqUi.player.pause(); showTab("consola"); }); await p.waitForTimeout(1500); shot("4-consola");
+// 4) 2.12.1 · audio de PADZ en modo Android (búfer grande, 48 kHz) y metrónomo medido a la salida del click (reloj de audio)
+try {
+  const m = await p.evaluate(async () => { unlockAudio(); init(); await ctx.resume().catch(() => {});
+    const REC = `class R extends AudioWorkletProcessor{constructor(){super();this.on=false;this.last=-1e9;}process(i){const x=i[0]&&i[0][0];if(x){for(let k=0;k<x.length;k++){const a=Math.abs(x[k]);const f=currentFrame+k;if(!this.on&&a>0.02&&f-this.last>sampleRate*0.08){this.on=true;this.last=f;this.port.postMessage(f/sampleRate);}else if(this.on&&a<0.002)this.on=false;}}return true;}}registerProcessor("rec-onsets",R);`;
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([REC], { type: "text/javascript" })));
+    const n = new AudioWorkletNode(ctx, "rec-onsets"), z = ctx.createGain(); z.gain.value = 0; const on = []; n.port.onmessage = (e) => on.push(e.data); clickBus.connect(n); n.connect(z).connect(ctx.destination);
+    setBpm(120); metStart(); await new Promise((r) => setTimeout(r, 4500)); metStop(); await new Promise((r) => setTimeout(r, 300));
+    return { sr: ctx.sampleRate, bl: ctx.baseLatency, log: /modo Android/.test(padzLogText()), on }; });
+  const iv = m.on.slice(1).map((t, i) => t - m.on[i]);
+  ok(m.sr === 48000 && m.log, "PADZ crea el audio en modo Android (" + m.sr + " Hz, latencia base " + Math.round((m.bl || 0) * 1000) + " ms)");
+  ok(iv.length >= 6 && iv.every((d) => Math.abs(d - 0.5) < 0.005), "metrónomo a 120 en el WebView: " + m.on.length + " golpes, intervalos " + (iv.length ? Math.min(...iv).toFixed(3) + "–" + Math.max(...iv).toFixed(3) : "—") + " s");
+} catch (e) { ok(false, "audio en modo Android: " + e.message); }
+save();
+// 5) 2.12.1 · si Android cierra la página (memoria), la app no se cierra: se vuelve a abrir y avisa (MainActivity)
+try {
+  try { await p.goto("chrome://crash", { timeout: 5000 }); } catch (e) {}
+  await new Promise((r) => setTimeout(r, 12000));
+  const vivo = sh("adb shell pidof app.padz.android").trim();
+  const wvs = dev.webViews().filter((w) => w.pkg() === "app.padz.android"); let p2 = null;
+  for (const w of wvs.reverse()) { try { const pg = await w.page(); await pg.waitForFunction(() => typeof showTab === "function", null, { timeout: 60000 }); p2 = pg; break; } catch (e) {} }
+  const corte = p2 ? await p2.evaluate(() => !!window.padzCorteAnterior) : false;
+  ok(!!vivo && !!p2, "se rompió la página adrede: la app sigue abierta y PADZ volvió a cargar (proceso " + (vivo || "cerrado") + ")");
+  ok(corte, "PADZ avisa que la sesión anterior se cortó de golpe (registro de audio)"); shot("5-recuperada");
+} catch (e) { ok(false, "recuperación tras cerrar la página: " + e.message); }
+save();
 const mem = sh("adb shell dumpsys meminfo app.padz.android | grep -m1 'TOTAL PSS' || adb shell dumpsys meminfo app.padz.android | grep -m1 TOTAL"); out.push("memoria: " + mem.trim());
 fs.writeFileSync("capturas/resultado.txt", out.join("\n") + "\n" + (fallas ? fallas + " fallas" : "Todo bien") + "\n");
 console.log(fallas ? fallas + " fallas" : "Todo bien"); await dev.close(); process.exit(fallas ? 1 : 0);
