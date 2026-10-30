@@ -107,6 +107,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Probar en un emulador de Android
+        id: emu
         if: steps.ya.outputs.si != '1'
         continue-on-error: true
         timeout-minutes: 15
@@ -140,8 +141,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ steps.ya.outputs.v }}"
+          # APK EXPERIMENTAL: armado y (si el emulador anduvo) abierto en un emulador. NO está validado en un teléfono real.
+          # "PADZ.apk" queda reservado para una versión validada en teléfono (se marca a mano, no lo decide este flujo).
           cp android/capturas/resultado.txt android-prueba.txt 2>/dev/null || echo "prueba en emulador incompleta" > android-prueba.txt
-          gh release upload "v$V" android/PADZ.apk android-prueba.txt --clobber
+          EMU="${{ steps.emu.outcome }}"; echo "emulador: $EMU" >> android-prueba.txt
+          cp android/PADZ.apk android/PADZ-experimental.apk
+          gh release upload "v$V" android/PADZ-experimental.apk android-prueba.txt --clobber
           gh release view "v$V" --json body -q .body > notas.md
-          printf '\n\n**Android:** bajá **PADZ.apk** en el teléfono y abrilo. Si pide permiso para "instalar apps desconocidas", aceptalo para el navegador o Archivos. Es una versión de prueba (firma de prueba, no está en Play Store).\n' >> notas.md
+          if [ "$EMU" = "success" ]; then E="abrió bien en un emulador"; else E="la prueba en el emulador no terminó (el emulador de GitHub se cae seguido)"; fi
+          printf '\n\n**Android (experimental):** **PADZ-experimental.apk**: %s, pero todavía **no está probada en un teléfono real**. Firma de prueba, no está en Play Store. Si pide permiso para "instalar apps desconocidas", aceptalo para el navegador o Archivos.\n' "$E" >> notas.md
           gh release edit "v$V" --notes-file notas.md
