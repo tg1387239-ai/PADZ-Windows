@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "7,37 * * * *"
   workflow_dispatch:
+    inputs:
+      repetir_android:
+        description: 'Volver a armar y probar el APK aunque ya esté publicado para esta versión'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -76,6 +81,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ needs.windows.outputs.version }}"; echo "v=$V" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.repetir_android }}" = "true" ]; then echo "Se vuelve a armar y probar el APK (pedido a mano)."; exit 0; fi
           if gh release view "v$V" --json assets -q '.assets[].name' 2>/dev/null | grep -qx android-prueba.txt; then echo "si=1" >> "$GITHUB_OUTPUT"; echo "El APK ya estaba publicado."; fi
       # la misma firma de prueba en cada versión (para poder instalar encima sin desinstalar); no se guarda en el repositorio
       - name: Firma (guardada en la caché de GitHub)
