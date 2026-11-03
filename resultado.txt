@@ -1,0 +1,15 @@
+ok  emulador conectado: Android SDK built for x86_64
+WebView: {"url":"https://padz.tg1387239.workers.dev/","ver":"","ua":"Mozilla/5.0 (Linux; Android 14; Android SDK built for x86_64 Build/UE1A.230829.036.A1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36","mem":2,"coi":false,"aw":"function","dec":"function","enc":"function","cap":true,"native":true,"inicio":true}
+ok  PADZ abre adentro de la app y reconoce que es Android (ingreso con Google por el navegador)
+ok  arranca en Inicio
+ok  el WebView tiene AudioWorklet (motor de pistas)
+ok  secuencia guardada (opus) y abierta en la mezcladora con 4 pistas
+aviso: la prueba del fader no pudo correr (page.$: Target page, context or browser has been closed)
+aviso: no se pudo volver a tomar la página: page.waitForFunction: Target page, context or browser has been closed
+MAL audio y secuencia en el WebView: page.evaluate: Target page, context or browser has been closed
+MAL audio en modo Android: page.evaluate: Target page, context or browser has been closed
+MAL se rompió la página adrede: la app sigue abierta y PADZ volvió a cargar (proceso adb: device 'emulator-5554' not found)
+MAL PADZ avisa que la sesión anterior se cortó de golpe (registro de audio)
+memoria: adb: device 'emulator-5554' not found
+adb: device 'emulator-5554' not found
+4 fallas

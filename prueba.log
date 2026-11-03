@@ -1,0 +1,10 @@
+ok  emulador conectado: Android SDK built for x86_64
+ok  PADZ abre adentro de la app y reconoce que es Android (ingreso con Google por el navegador)
+ok  arranca en Inicio
+ok  el WebView tiene AudioWorklet (motor de pistas)
+ok  secuencia guardada (opus) y abierta en la mezcladora con 4 pistas
+MAL audio y secuencia en el WebView: page.evaluate: Target page, context or browser has been closed
+MAL audio en modo Android: page.evaluate: Target page, context or browser has been closed
+MAL se rompió la página adrede: la app sigue abierta y PADZ volvió a cargar (proceso adb: device 'emulator-5554' not found)
+MAL PADZ avisa que la sesión anterior se cortó de golpe (registro de audio)
+4 fallas
